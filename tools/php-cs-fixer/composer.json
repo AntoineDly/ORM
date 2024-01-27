@@ -1,0 +1,18 @@
+{
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "AntoineDly\\ORM\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "AntoineDly\\ORM\\": "tests/"
+    }
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.22"
+  }
+}
