@@ -12,7 +12,8 @@
     ],
     "require": {
         "php": "^8.2",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "ext-pdo": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.2"

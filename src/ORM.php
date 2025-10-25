@@ -46,15 +46,9 @@ class ORM
     private ?int $offset = null;
     /** @var array<array<string, string>> $join */
     private array $join;
-    private EntityInterface $entity;
 
     public function __construct(private readonly LoggerInterface $logger)
     {
-    }
-
-    public function setEntity(EntityInterface $entity): void
-    {
-        $this->entity = $entity;
     }
 
     public function setHost(string $host): self
@@ -92,41 +86,36 @@ class ORM
         }
     }
 
-    public function get(): EntityInterface
+    public function get(EntityInterface $entity): EntityInterface
     {
-        $query = $this->select();
+        $query = $this->select($entity);
         $object = $query->fetch(PDO::FETCH_ASSOC);
         if (!is_array($object)) {
             $object = [];
         }
-        return $this->populate($object);
+        return $this->populate($entity, $object);
     }
 
     /** @return array<int, EntityInterface>> */
-    public function all(): array
+    public function all(EntityInterface $entity): array
     {
-        $objects = $this->select()->fetchAll();
-        return $this->populateAll($objects);
+        $objects = $this->select($entity)->fetchAll();
+        return $this->populateAll($entity, $objects);
     }
 
-    public function count(): int
+    public function count(EntityInterface $entity): int
     {
-        $query = $this->select();
-        return $query->rowCount();
+        return $this->select($entity)->rowCount();
     }
 
-    public function exist(int $value, string $field = 'id', string $type = 'int'): bool
+    public function exist(EntityInterface $entity, int $value, string $field = 'id', string $type = 'int'): bool
     {
-        $count = $this->where(field: $field, value: $value, type: $type)->limitBy(1)->count();
+        $count = $this->where(field: $field, value: $value, type: $type)->limitBy(1)->count($entity);
         return $count === 1;
     }
 
     public function fields(string $field, ?string $table): self
     {
-        if (is_null($table)) {
-            $table = $this->entity->getTable();
-        }
-
         $this->fields[] = [
             'table' => $table,
             'field' => $field
@@ -146,10 +135,6 @@ class ORM
             throw new SQLDirectionException('Direction for ORDER is meant to be ASC or DESC : ' . $direction);
         }
 
-        if (is_null($table)) {
-            $table = $this->entity->getTable();
-        }
-
         $this->order[] = [
             'table' => $table,
             'field' => $field,
@@ -158,8 +143,12 @@ class ORM
         return $this;
     }
 
-    public function save(EntityInterface $entity): bool
+    public function save(EntityInterface $class, EntityInterface $entity): bool
     {
+        if (!$entity instanceof $class::class) {
+            // @todo implement proper exception
+            throw new Exception();
+        }
         $class = new ReflectionClass($entity);
         $properties = $class->getProperties();
         $attributes = [];
@@ -173,40 +162,28 @@ class ORM
         }
         $this->fieldsAndValues($attributes);
 
-        if (isset($entity->id) && $this->exist($entity->id)) {
-            $result = $this->where('id', (int)$entity->id, '=', 'int')->limitBy(1)->update();
+        if (isset($entity->id) && $this->exist($entity, $entity->id)) {
+            $result = $this->where('id', (int)$entity->id, '=', 'int')->limitBy(1)->update($entity);
         } else {
-            $result = $this->insert();
+            $result = $this->insert($entity);
         }
         return $result;
     }
 
-    public function remove(): bool
-    {
-        return $this->delete();
-    }
-
     /**
-     * @param string|array<int, string> $table
+     * @param string|array<int, string|null> $table
      * @param string|array<int, string> $key
      */
     public function join(array|string $table, string|array $key, string $type): self
     {
-        $tablesJoined = [
-            'first' => $this->entity::getTable(),
-            'second'
-        ];
         if (is_array($table)) {
             $tablesJoined['first'] = $table[0];
             $tablesJoined['second'] = $table[1];
         } else {
+            $tablesJoined['first'] = null;
             $tablesJoined['second'] = $table;
         }
 
-        $keyJoined = [
-            'first',
-            'second'
-        ];
         if (is_array($key)) {
             $keyJoined['first'] = $key[0];
             $keyJoined['second'] = $key[1];
@@ -277,32 +254,27 @@ class ORM
     }
 
     /** @param array<string|int, string|int> $object */
-    private function populate(array $object): EntityInterface
+    private function populate(EntityInterface $entity, array $object): EntityInterface
     {
+        $newEntity = clone $entity;
         foreach ($object as $field => $value) {
             if (is_numeric($field)) {
                 continue;
             }
-            $this->entity->$field = $value;
+            $newEntity->$field = $value;
         }
-        return $this->entity;
+        return $newEntity;
     }
 
     /**
      * @param array<array<string|int, string|int>> $objects
      * @return array<int, EntityInterface>>
      */
-    private function populateAll(array $objects): array
+    private function populateAll(EntityInterface $entity, array $objects): array
     {
         $entities = [];
         foreach ($objects as $object) {
-            foreach ($object as $field => $value) {
-                if (is_numeric($field)) {
-                    continue;
-                }
-                $this->entity->$field = $value;
-            }
-            $entities[] = $this->entity;
+            $entities[] = $this->populate($entity, $object);
         }
 
         return $entities;
@@ -366,31 +338,43 @@ class ORM
         return ' OFFSET ' . $this->offset;
     }
 
-    private function writeFields(): string
+    private function writeFields(EntityInterface $entity): string
     {
         $fields = [];
         foreach ($this->fields as $field) {
+            if (is_null($field['table'])) {
+                $field['table'] = $entity->getTable();
+            }
+
             $fields[] = $field['table'] . '.' . $field['field'];
         }
         return implode(', ', $fields);
     }
 
-    private function writeOrderBy(): string
+    private function writeOrderBy(EntityInterface $entity): string
     {
         $directions = [];
         foreach ($this->order as $order) {
+            if (is_null($order['table'])) {
+                $order['table'] = $entity->getTable();
+            }
+
             $directions[] = $order['table'] . '.' . $order['field'] . ' ' . $order['direction'];
         }
         return ' ORDER BY ' . implode(', ', $directions);
     }
 
-    private function writeJoin(): string
+    private function writeJoin(EntityInterface $entity): string
     {
         $conditions = [];
         foreach ($this->join as $join) {
             $condition = '';
             if ($join['type'] != '') {
                 $condition .= $join['type'] . ' ';
+            }
+
+            if (is_null($join['firstTable'])) {
+                $join['firstTable'] = $entity->getTable();
             }
 
             $condition .= 'JOIN ' . $join['secondTable'] . ' ON ' .
@@ -435,24 +419,24 @@ class ORM
         return $whereQuery;
     }
 
-    private function preSelect(): string
+    private function preSelect(EntityInterface $entity): string
     {
         $sql = 'SELECT ';
         if (empty($this->fields)) {
             $sql .= '*';
         } else {
-            $sql .= $this->writeFields();
+            $sql .= $this->writeFields($entity);
         }
-        $sql .= ' FROM ' . $this->entity->getTable();
+        $sql .= ' FROM ' . $entity->getTable();
 
         if (!empty($this->join)) {
-            $sql .= $this->writeJoin();
+            $sql .= $this->writeJoin($entity);
         }
         if (!empty($this->where)) {
             $sql .= $this->writeWhere();
         }
         if (!empty($this->order)) {
-            $sql .= $this->writeOrderBy();
+            $sql .= $this->writeOrderBy($entity);
         }
         if (!is_null($this->limit)) {
             $sql .= $this->writeLimitBy();
@@ -464,9 +448,9 @@ class ORM
         return $sql;
     }
 
-    private function select(): PDOStatement
+    private function select(EntityInterface $entity): PDOStatement
     {
-        $sql = $this->preSelect();
+        $sql = $this->preSelect($entity);
         $query = $this->prepareQuery($sql);
         $success = $this->executeQuery($query);
         if (!$success) {
@@ -493,9 +477,9 @@ class ORM
         $this->offset = null;
     }
 
-    private function preDelete(): string
+    private function preDelete(EntityInterface $entity): string
     {
-        $sql = 'DELETE FROM ' . $this->entity->getTable();
+        $sql = 'DELETE FROM ' . $entity->getTable();
         if (!empty($this->where)) {
             $sql .= $this->writeWhere();
         }
@@ -503,18 +487,18 @@ class ORM
         return $sql;
     }
 
-    private function delete(): bool
+    public function delete(EntityInterface $entity): bool
     {
-        $sql = $this->preDelete();
+        $sql = $this->preDelete($entity);
         $query = $this->prepareQuery($sql, QueryEnum::DELETE);
         $success = $this->executeQuery($query);
         $this->clearParams();
         return $success;
     }
 
-    private function preUpdate(): string
+    private function preUpdate(EntityInterface $entity): string
     {
-        $sql = 'UPDATE ' . $this->entity->getTable() . ' SET ';
+        $sql = 'UPDATE ' . $entity->getTable() . ' SET ';
         if (!empty($this->fieldsAndValues)) {
             $sql .= $this->updateWriteFieldsAndValues();
         }
@@ -525,18 +509,18 @@ class ORM
         return $sql;
     }
 
-    public function update(): bool
+    public function update(EntityInterface $entity): bool
     {
-        $sql = $this->preUpdate();
+        $sql = $this->preUpdate($entity);
         $query = $this->prepareQuery($sql, QueryEnum::UPDATE);
         $success = $this->executeQuery($query);
         $this->clearParams();
         return $success;
     }
 
-    private function preInsert(): string
+    private function preInsert(EntityInterface $entity): string
     {
-        $sql = 'INSERT INTO ' . $this->entity->getTable();
+        $sql = 'INSERT INTO ' . $entity->getTable();
         if (!empty($this->fieldsAndValues)) {
             $sql .= $this->insertWriteFieldsAndValues();
         }
@@ -544,9 +528,9 @@ class ORM
         return $sql;
     }
 
-    private function insert(): bool
+    private function insert(EntityInterface $entity): bool
     {
-        $sql = $this->preInsert();
+        $sql = $this->preInsert($entity);
         $query = $this->prepareQuery($sql, QueryEnum::INSERT);
         $success = $this->executeQuery($query);
         $this->clearParams();

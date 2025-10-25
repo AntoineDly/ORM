@@ -19,13 +19,12 @@ abstract class BaseRepository
 {
     public function __construct(private EntityInterface $entity, private ORM $orm)
     {
-        $orm->setEntity($this->entity);
     }
 
     /** @return EntityInterface[] */
     public function findAll(): array
     {
-        return $this->orm->all();
+        return $this->orm->all($this->entity);
     }
 
     public function findById(int $id): EntityInterface
@@ -35,28 +34,27 @@ abstract class BaseRepository
 
     public function find(string $field, string|int $value, string $operator = '=', string $type = 'string'): EntityInterface
     {
-        return $this->orm->where($field, $value, $operator, $type)->get();
+        return $this->orm->where($field, $value, $operator, $type)->get($this->entity);
     }
 
     public function exist(int $id): bool
     {
-        return $this->orm->exist($id);
+        return $this->orm->exist($this->entity, $id);
     }
 
     public function save(EntityInterface $entity): bool
     {
-        return $this->orm->save($entity);
+        return $this->orm->save($this->entity, $entity);
     }
 
     public function update(string $field, string|int $value, string $type = 'string'): bool
     {
-        return $this->orm->fieldAndValue($field, $value, $type)->update();
+        return $this->orm->fieldAndValue($field, $value, $type)->update($this->entity);
     }
 
-    public function remove(string $field, string|int $value, string $operator = '=', string $type = 'string'): bool
+    public function delete(string $field, string|int $value, string $operator = '=', string $type = 'string'): bool
     {
-        return $this->orm->where($field, $value, $operator, $type)->remove();
+        return $this->orm->where($field, $value, $operator, $type)->delete($this->entity);
     }
-
 
 }
