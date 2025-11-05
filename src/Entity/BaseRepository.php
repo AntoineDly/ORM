@@ -15,7 +15,7 @@ namespace AntoineDly\ORM\Entity;
 
 use AntoineDly\ORM\ORM;
 
-abstract class BaseRepository
+abstract readonly class BaseRepository
 {
     public function __construct(private EntityInterface $entity, private ORM $orm)
     {

@@ -15,6 +15,7 @@ namespace AntoineDly\ORM;
 
 use AntoineDly\ORM\Entity\EntityInterface;
 use AntoineDly\ORM\Exceptions\ConnexionPDOException;
+use AntoineDly\ORM\Exceptions\EntityClassException;
 use AntoineDly\ORM\Exceptions\ExecutionQueryException;
 use AntoineDly\ORM\Exceptions\QueryTypeException;
 use AntoineDly\ORM\Exceptions\SQLDirectionException;
@@ -36,15 +37,15 @@ class ORM
     private PDO $connexionPDO;
     /** @var array<array<string, string|int>> $where */
     private array $where = [];
-    /** @var  array<int, array<string, string>> $fields */
+    /** @var  array<int, array<string, string|null>> $fields */
     private array $fields;
     /** @var array<array<string, string|int>> $fieldsAndValues */
     private array $fieldsAndValues;
-    /** @var array<array<string, string>> $order */
+    /** @var array<array<string, string|null>> $order */
     private array $order;
     private ?int $limit = null;
     private ?int $offset = null;
-    /** @var array<array<string, string>> $join */
+    /** @var array<array<string, string|null>> $join */
     private array $join;
 
     public function __construct(private readonly LoggerInterface $logger)
@@ -145,12 +146,11 @@ class ORM
 
     public function save(EntityInterface $class, EntityInterface $entity): bool
     {
-        if (!$entity instanceof $class::class) {
-            // @todo implement proper exception
-            throw new Exception();
+        if (!$entity instanceof $class) {
+            throw new EntityClassException($entity::class.' is different from '.$class::class);
         }
-        $class = new ReflectionClass($entity);
-        $properties = $class->getProperties();
+        $reflectionClass = new ReflectionClass($entity);
+        $properties = $reflectionClass->getProperties();
         $attributes = [];
 
         foreach ($properties as $property) {
@@ -369,7 +369,7 @@ class ORM
         $conditions = [];
         foreach ($this->join as $join) {
             $condition = '';
-            if ($join['type'] != '') {
+            if ($join['type'] !== '') {
                 $condition .= $join['type'] . ' ';
             }
 

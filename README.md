@@ -9,7 +9,7 @@ A simple ORM
 
 ### Author
 
-Antoine Delaunay - <antoine.delaunay333@gmail.com> - [Twitter](http://twitter.com/AntDlny)<br />
+Antoine Delaunay - <antoine.delaunay333@gmail.com> <br />
 
 ### License
 
