@@ -42,11 +42,11 @@ class ORM
     /** @var array<array<string, string|int>> $fieldsAndValues */
     private array $fieldsAndValues;
     /** @var array<array<string, string|null>> $order */
-    private array $order;
+    private array $order = [];
     private ?int $limit = null;
     private ?int $offset = null;
     /** @var array<array<string, string|null>> $join */
-    private array $join;
+    private array $join = [];
 
     public function __construct(private readonly LoggerInterface $logger)
     {
@@ -320,6 +320,13 @@ class ORM
                 $query->bindValue(':_fav' . $fav['field'], $fav['value'], (int)$fav['type']);
             }
         }
+
+        if (!is_null($this->limit)) {
+            $query->bindValue(':limit', $this->limit);
+        }
+        if (!is_null($this->offset)) {
+            $query->bindValue(':offset', $this->offset);
+        }
         return $query;
     }
 
@@ -330,12 +337,12 @@ class ORM
 
     private function writeLimitBy(): string
     {
-        return ' LIMIT ' . $this->limit;
+        return ' LIMIT :limit';
     }
 
     private function writeOffset(): string
     {
-        return ' OFFSET ' . $this->offset;
+        return ' OFFSET :offset';
     }
 
     private function writeFields(EntityInterface $entity): string
