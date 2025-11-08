@@ -10,18 +10,16 @@ use AntoineDly\ORM\Dtos\DtoCollectionInterface;
  */
 final class RecursiveWhereDtoCollection implements DtoCollectionInterface, WherePartDtoInterface
 {
-    public const PREFIX_WHERE_BINDED = ':where_';
-
     /** @use CollectionTrait<WherePartDtoInterface> */
     use CollectionTrait;
+    private const PREFIX_WHERE_BINDED = ':where_';
 
-    public int $count = 0;
+    private int $count = 0;
 
     public function __construct(
-        public int $parentCount,
-        public ComparaisonEnum $comparaison = ComparaisonEnum::FIRST,
-    )
-    {
+        private int $parentCount,
+        private ComparaisonEnum $comparaison = ComparaisonEnum::FIRST,
+    ) {
     }
 
     public function firstWhere(string $table, string $field, string|int $value, OperatorEnum $operator = OperatorEnum::EQUAL, PdoParamEnum $type = PdoParamEnum::STRING)
@@ -29,20 +27,19 @@ final class RecursiveWhereDtoCollection implements DtoCollectionInterface, Where
         return $this->addWhere($table, $field, $value, ComparaisonEnum::FIRST, $operator, $type);
     }
 
-    public function addWhere(string $table, string $field, string|int $value, ComparaisonEnum $comparaison, OperatorEnum $operator = OperatorEnum::EQUAL, PdoParamEnum $type = PdoParamEnum::STRING)
+    public function andWhere(string $table, string $field, string|int $value, OperatorEnum $operator = OperatorEnum::EQUAL, PdoParamEnum $type = PdoParamEnum::STRING)
     {
-        $bindParam = self::PREFIX_WHERE_BINDED.$this->parentCount.'_'.$this->count.'_'.$field;
-        $this->count++;
-        $bindedValue = new BindValueDto(
-            $bindParam, $value, $type
-        );
+        return $this->addWhere($table, $field, $value, ComparaisonEnum::AND, $operator, $type);
+    }
 
-        $whereDto = new WherePartDto(
-            $table, $field, $operator, $bindedValue, $comparaison
-        );
+    public function orWhere(string $table, string $field, string|int $value, OperatorEnum $operator = OperatorEnum::EQUAL, PdoParamEnum $type = PdoParamEnum::STRING)
+    {
+        return $this->addWhere($table, $field, $value, ComparaisonEnum::OR, $operator, $type);
+    }
 
-        $this->add($whereDto);
-
+    public function addWherePart(WherePartDtoInterface $wherePart): self
+    {
+        $this->add($wherePart);
         return $this;
     }
 
@@ -53,13 +50,13 @@ final class RecursiveWhereDtoCollection implements DtoCollectionInterface, Where
             return '';
         }
 
-        $sql = $this->comparaison->value.'(';
+        $sql = ' '.$this->comparaison->getSQL().' ( ';
 
         foreach ($this->elements as $element) {
             $sql .= $element->getSQl();
         }
 
-        return $sql.')';
+        return $sql.' ) ';
     }
 
     public function getBindValues(): BindValueDtoCollection
@@ -79,5 +76,43 @@ final class RecursiveWhereDtoCollection implements DtoCollectionInterface, Where
         }
 
         return BindValueDtoCollection::create($bindValueDtos);
+    }
+
+    private function increment(): void
+    {
+        $this->count++;
+    }
+
+    /**
+     * @param string $field
+     * @param int|string $value
+     * @param PdoParamEnum $type
+     * @return BindValueDto
+     */
+    private function getBindValueDto(string $field, int|string $value, PdoParamEnum $type): BindValueDto
+    {
+        $bindParam = self::PREFIX_WHERE_BINDED . $this->parentCount . '_' . $this->count . '_' . $field;
+        $this->increment();
+
+        return new BindValueDto(
+            $bindParam,
+            $value,
+            $type
+        );
+    }
+
+    private function addWhere(string $table, string $field, string|int $value, ComparaisonEnum $comparaison, OperatorEnum $operator = OperatorEnum::EQUAL, PdoParamEnum $type = PdoParamEnum::STRING)
+    {
+        $bindedValue = $this->getBindValueDto($field, $value, $type);
+
+        $whereDto = new WherePartDto(
+            $table,
+            $field,
+            $operator,
+            $bindedValue,
+            $comparaison
+        );
+
+        return $this->addWherePart($whereDto);
     }
 }

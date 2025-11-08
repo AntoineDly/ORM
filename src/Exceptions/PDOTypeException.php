@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the AntoineDly/Router package.
+ * This file is part of the AntoineDly/ORM package.
  *
  * (c) Antoine Delaunay <antoine.delaunay333@gmail.com>
  *

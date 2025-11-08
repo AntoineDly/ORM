@@ -11,9 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace AntoineDly\ORM\Entity;
+namespace AntoineDly\ORM\Exceptions;
 
-interface FactoryInterface
+use Exception;
+
+class OperatorEnumException extends Exception
 {
-    public function create(string $type): object;
 }

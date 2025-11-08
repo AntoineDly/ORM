@@ -8,7 +8,6 @@ final readonly class BindValueDto
         public string|int $param,
         public mixed $value,
         public PdoParamEnum $type
-    )
-    {
+    ) {
     }
 }

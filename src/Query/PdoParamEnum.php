@@ -7,7 +7,6 @@ use PDO;
 
 enum PdoParamEnum: string
 {
-
     case INTEGER = 'integer';
     case INT = 'int';
     case FLOAT = 'float';

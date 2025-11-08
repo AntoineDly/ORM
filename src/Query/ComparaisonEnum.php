@@ -10,7 +10,7 @@ enum ComparaisonEnum: string
     case AND = 'AND';
     case OR = 'OR';
 
-    public function toSql(): string
+    public function getSQL(): string
     {
         return match ($this) {
             self::FIRST => '',

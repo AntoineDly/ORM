@@ -10,13 +10,12 @@ final readonly class WherePartDto implements WherePartDtoInterface
         public OperatorEnum $operator,
         public BindValueDto $bindedValue,
         public ComparaisonEnum $comparaison,
-    )
-    {
+    ) {
     }
 
-    public function getSql(): string
+    public function getSQL(): string
     {
-        return $this->comparaison->value.'('.$this->table.'.'.$this->field.' '.$this->operator->value.' '.$this->bindedValue->param.')';
+        return ' '.$this->comparaison->getSQL().' ( '.$this->table.'.'.$this->field.' '.$this->operator->getSQL().' '.$this->bindedValue->param.' ) ';
     }
 
     public function getBindValues(): BindValueDtoCollection
