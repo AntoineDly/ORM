@@ -1,35 +1,46 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the AntoineDly/ORM package.
+ *
+ * (c) Antoine Delaunay <antoine.delaunay333@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace AntoineDly\ORM\Query;
 
 trait WhereTrait
 {
     private int $whereCount = 0;
-    private RecursiveWhereDtoCollection $whereDtoCollection;
+    private RecursiveWherePartDtoCollection $recursiveWherePartDtoCollection;
 
-    private function instantiateWhereParts(): void
+    private function instantiateRecursiveWherePartDtoCollection(): void
     {
-        $this->whereDtoCollection = $this->createFirstWhereDtoCollection();
+        $this->recursiveWherePartDtoCollection = $this->createFirstRecursiveWherePartDtoCollection();
     }
 
-    public function createFirstWhereDtoCollection(): RecursiveWhereDtoCollection
+    public function createFirstRecursiveWherePartDtoCollection(): RecursiveWherePartDtoCollection
     {
-        return $this->createWhereDtoCollection(ComparaisonEnum::FIRST);
+        return $this->createRecursiveWherePartDtoCollection(ComparaisonEnum::FIRST);
     }
 
-    public function createAndWhereDtoCollection(): RecursiveWhereDtoCollection
+    public function createAndRecursiveWherePartDtoCollection(): RecursiveWherePartDtoCollection
     {
-        return $this->createWhereDtoCollection(ComparaisonEnum::AND);
+        return $this->createRecursiveWherePartDtoCollection(ComparaisonEnum::AND);
     }
 
-    public function createOrWhereDtoCollection(): RecursiveWhereDtoCollection
+    public function createOrRecursiveWherePartDtoCollection(): RecursiveWherePartDtoCollection
     {
-        return $this->createWhereDtoCollection(ComparaisonEnum::OR);
+        return $this->createRecursiveWherePartDtoCollection(ComparaisonEnum::OR);
     }
 
-    public function createWhereDtoCollection(ComparaisonEnum $comparaison): RecursiveWhereDtoCollection
+    public function createRecursiveWherePartDtoCollection(ComparaisonEnum $comparaison): RecursiveWherePartDtoCollection
     {
-        $whereDtoCollection = new RecursiveWhereDtoCollection($this->whereCount, $comparaison);
+        $whereDtoCollection = new RecursiveWherePartDtoCollection($this->whereCount, $comparaison);
         $this->increment();
         return $whereDtoCollection;
     }
@@ -41,7 +52,7 @@ trait WhereTrait
 
     private function getWhereSQL(): string
     {
-        $sql = $this->whereDtoCollection->getSQl();
+        $sql = $this->recursiveWherePartDtoCollection->getSQl();
         if ($sql === '') {
             return '';
         }
@@ -50,6 +61,6 @@ trait WhereTrait
 
     private function getWhereBindValues(): BindValueDtoCollection
     {
-        return $this->whereDtoCollection->getBindValues();
+        return $this->recursiveWherePartDtoCollection->getBindValues();
     }
 }

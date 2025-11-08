@@ -13,6 +13,6 @@ declare(strict_types=1);
 
 namespace AntoineDly\ORM\Query;
 
-interface WherePartDtoInterface extends SQLPartWithBindedValuesDtoInterface
+interface JoinPartDtoInterface extends SQLPartDtoInterface
 {
 }

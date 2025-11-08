@@ -11,8 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace AntoineDly\ORM\Query;
+namespace AntoineDly\ORM\Exceptions;
 
-interface WherePartDtoInterface extends SQLPartWithBindedValuesDtoInterface
+use Exception;
+
+class JoinTypeEnumException extends Exception
 {
 }

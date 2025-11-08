@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace AntoineDly\ORM\Query;
 
-interface WherePartDtoInterface extends SQLPartWithBindedValuesDtoInterface
+use AntoineDly\ORM\Dtos\DtoInterface;
+
+interface SQLPartWithBindedValuesDtoInterface extends SQLPartDtoInterface
 {
+    public function getBindValues(): BindValueDtoCollection;
 }

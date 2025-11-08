@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the AntoineDly/ORM package.
+ *
+ * (c) Antoine Delaunay <antoine.delaunay333@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace AntoineDly\ORM\Query;
 
 use AntoineDly\ORM\Collection\CollectionTrait;
@@ -8,7 +19,7 @@ use AntoineDly\ORM\Dtos\DtoCollectionInterface;
 /**
  * @implements DtoCollectionInterface<WherePartDtoInterface>
  */
-final class RecursiveWhereDtoCollection implements DtoCollectionInterface, WherePartDtoInterface
+final class RecursiveWherePartDtoCollection implements DtoCollectionInterface, WherePartDtoInterface
 {
     /** @use CollectionTrait<WherePartDtoInterface> */
     use CollectionTrait;
@@ -52,7 +63,7 @@ final class RecursiveWhereDtoCollection implements DtoCollectionInterface, Where
 
         $sql = ' '.$this->comparaison->getSQL().' ( ';
 
-        foreach ($this->elements as $element) {
+        foreach ($this->elements() as $element) {
             $sql .= $element->getSQl();
         }
 

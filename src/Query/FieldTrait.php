@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the AntoineDly/ORM package.
+ *
+ * (c) Antoine Delaunay <antoine.delaunay333@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace AntoineDly\ORM\Query;
 
 use AntoineDly\ORM\Exceptions\TableIsEmptyException;
@@ -11,11 +22,11 @@ trait FieldTrait
 
     private function getFieldsString(): string
     {
-        if (count($this->fields) === 0) {
+        if (count($this->getFields()) === 0) {
             $this->setFields(['*']);
         }
 
-        return implode(', ', $this->fields);
+        return implode(', ', $this->getFields());
     }
 
     /**
@@ -38,7 +49,6 @@ trait FieldTrait
         $this->fields[] = $field;
         return $this;
     }
-
 
     private function getFieldsSQL(): string
     {
